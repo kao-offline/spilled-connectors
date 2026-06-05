@@ -42,7 +42,7 @@
         "apiVersion": 2,
         "entry": "connectors/synova.js"
       },
-      "capabilities": ["search", "metadata", "import", "players", "noCredentials"],
+      "capabilities": ["search", "discovery", "metadata", "import", "players", "noCredentials"],
       "credentialRequirements": [{ "kind": "none", "label": "No credentials required" }],
       "networkPermissions": ["https://cinenova.store"]
     },
