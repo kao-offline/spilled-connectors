@@ -294,3 +294,38 @@ export async function importItem({ slug }) {
     episodes: [episode],
   };
 }
+
+function candidateFromItem(item) {
+  const year = item.year?.match(/\b(19|20)\d{2}\b/)?.[0];
+  return {
+    integrationId: "synova",
+    providerItemId: item.importSlug || item.slug,
+    mediaType: item.mediaType === "movie" ? "movie" : "series",
+    title: item.title,
+    year: year ? Number.parseInt(year, 10) : undefined,
+    sourceUrl: item.detailUrl,
+    posterUrl: item.posterUrl,
+    confidenceHints: {
+      normalizedTitle: normalizeText(item.title),
+      releaseDate: item.year ?? undefined,
+    },
+  };
+}
+
+export const integration = {
+  apiVersion: 2,
+  search: async ({ query }) => (await search({ query })).map(candidateFromItem),
+  getFeed: async ({ feedId, cursor, limit }) => await getFeed({ feedId, cursor, limit }),
+  importFallback: async ({ slug }) => await importItem({ slug }),
+  resolvePlayers: async ({ providerMatch }) => {
+    if (!providerMatch?.providerItemId) return [];
+    const show = await importItem({ slug: providerMatch.providerItemId });
+    return show.episodes.flatMap((episode) => episode.players.map((player) => ({
+      integrationId: "synova",
+      label: player.label,
+      language: player.language,
+      url: player.embedUrl,
+      type: "embed",
+    })));
+  },
+};

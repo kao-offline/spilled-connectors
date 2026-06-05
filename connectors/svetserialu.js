@@ -182,3 +182,26 @@ export async function search({ query }) {
     .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0))
     .slice(0, 12);
 }
+
+function candidateFromItem(item) {
+  const year = item.year?.match(/\b(19|20)\d{2}\b/)?.[0] ?? item.yearLabel?.match(/\b(19|20)\d{2}\b/)?.[0];
+  return {
+    integrationId: "svetserialu",
+    providerItemId: item.importSlug || item.slug,
+    mediaType: "series",
+    title: item.title,
+    year: year ? Number.parseInt(year, 10) : undefined,
+    sourceUrl: item.detailUrl,
+    posterUrl: item.posterUrl,
+    confidenceHints: {
+      normalizedTitle: normalizeText(item.title),
+      releaseDate: item.year ?? item.yearLabel ?? undefined,
+    },
+  };
+}
+
+export const integration = {
+  apiVersion: 2,
+  search: async ({ query }) => (await search({ query })).map(candidateFromItem),
+  getFeed: async ({ feedId, cursor, limit }) => await getFeed({ feedId, cursor, limit }),
+};

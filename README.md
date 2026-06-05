@@ -6,18 +6,39 @@ Host `spilled-connectors.json` at the root of a GitHub repository. In the app,
 users can paste either the GitHub repository URL or the raw JSON URL in
 Settings -> Sources -> Connector repositories.
 
-The current runtime supports these built-in adapter ids:
+The default repository currently publishes these integration ids:
 
 - `svetserialu`
 - `bombuj`
 - `synova`
+- `tmdb`
+- `tvdb`
+- `fanart`
 
-Each module can include a `runtime.entry` that points at an ESM file in this
-repository. The local SpilledCinema runtime fetches that file and calls:
+Each integration can include a `runtime.entry` that points at an ESM file in
+this repository. Runtime files may export the legacy functions:
 
 - `getFeed({ moduleId, feedId, cursor, limit })`
 - `search({ moduleId, query })`
+- `importItem({ moduleId, slug, mediaType })`
 
-Both functions should return the same JSON shapes used by SpilledCinema provider
-feed/search endpoints. Repository runtime code is used before bundled fallback
-adapters when the repository URL is configured in the app.
+Runtime files should also export a v2 adapter:
+
+```js
+export const integration = {
+  apiVersion: 2,
+  search,
+  getFeed,
+  resolveCandidateMetadata,
+  resolvePlayers,
+  resolveSubtitles,
+  resolveDownloads,
+  importFallback,
+};
+```
+
+Only export functions for capabilities declared in `spilled-connectors.json`.
+The app passes a constrained context into v2 functions and shared Convex API keys
+are never exposed to repository code. Central metadata/artwork integrations such
+as TMDB, TVDB, and Fanart use the app's secure Convex broker instead of runtime
+JavaScript from this repository.
