@@ -129,6 +129,15 @@ function showSlugFromImportSlug(importSlug) {
   return `synova-${importSlug.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`;
 }
 
+function titleFromImportSlug(importSlug) {
+  return importSlug
+    .split("/")
+    .pop()
+    ?.replace(/-/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim() || "CineNova title";
+}
+
 function matchMeta(html, property) {
   return String(html || "").match(new RegExp(`<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']*)["']`, "i"))?.[1]?.trim() ?? null;
 }
@@ -235,18 +244,27 @@ export async function importItem({ slug }) {
   }
 
   const detailUrl = `${EN_BASE_URL}/${importSlug}`;
-  const html = await fetchText(detailUrl);
+  let stale = false;
+  const html = await fetchText(detailUrl).catch(() => {
+    stale = true;
+    return "";
+  });
   const rawTitle =
     stripTags(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? "") ||
     matchMeta(html, "og:title") ||
-    importSlug.split("/").pop()?.replace(/-/g, " ") ||
-    "CineNova title";
+    titleFromImportSlug(importSlug);
   const { title, year } = parseTitleParts(rawTitle);
   const posterUrl = matchMeta(html, "og:image");
   const showSlug = showSlugFromImportSlug(importSlug);
   const importedAt = Date.now();
   const mediaType = importSlug.startsWith("tv/") ? "serial" : "movie";
-  const players = parseVideoSources(html, detailUrl);
+  const players = stale ? [{
+    alias: "synova-page",
+    provider: "synova",
+    label: "CineNova Page",
+    sourcePageUrl: detailUrl,
+    embedUrl: detailUrl,
+  }] : parseVideoSources(html, detailUrl);
   const episode = {
     id: `${showSlug}:s1e1`,
     showSlug,
